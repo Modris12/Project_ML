@@ -1,5 +1,34 @@
-import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler  
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+from scipy.stats import percentileofscore
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, make_scorer
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.linear_model import LogisticRegression
+from imblearn.over_sampling import ADASYN
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import SMOTE
+from sklearn.cluster import KMeans
+from collections import Counter
+from sklearn.decomposition import PCA
+from sklearn.svm import SVC
+from sklearn.ensemble import StackingClassifier
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 import joblib
+import streamlit as st
+
+
 # Load the single-feature ensemble model
 models = joblib.load('career_single_feature_ensemble.pkl')
 feature_list = ['E_score', 'N_score', 'C_score', 'A_score', 'O_score']
