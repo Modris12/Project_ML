@@ -1,33 +1,13 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler  
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix
-from scipy.stats import percentileofscore
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, make_scorer
-from sklearn.model_selection import GridSearchCV, StratifiedKFold
-from sklearn.linear_model import LogisticRegression
-from imblearn.over_sampling import ADASYN
-from imblearn.over_sampling import RandomOverSampler
-from imblearn.over_sampling import SMOTE
-from sklearn.cluster import KMeans
-from collections import Counter
-from sklearn.decomposition import PCA
-from sklearn.svm import SVC
-from sklearn.ensemble import StackingClassifier
-from sklearn.svm import SVC
-from xgboost import XGBClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
 
-import matplotlib.pyplot as plt
-import seaborn as sns
 import joblib
 import streamlit as st
 
+import pandas as pd
+
+# Load the DataFrame from a file or define it
+df = pd.read_csv('data/data.csv', delimiter='\t') 
 
 # Load the single-feature ensemble model
 models = joblib.load('career_single_feature_ensemble.pkl')
@@ -123,28 +103,20 @@ if st.button("Predict Career"):
         'O_score': np.mean([v for (c, v) in responses if c.startswith('O')]),
     }
 
-    # Calculate percentiles for each trait based on df columns
-    percentiles = {}
-    for trait in feature_list:
-        if trait in df.columns:
-            percentiles[trait] = np.round((df[trait] < trait_scores[trait]).mean() * 100, 2)
-        else:
-            percentiles[trait] = "N/A"
-    st.write("Your Big Five percentiles (relative to dataset):")
-    for trait in feature_list:
-        st.write(f"{trait}: {percentiles[trait]} percentile")
-
     # Prepare input for model
     sample_input = [[trait_scores[f] for f in feature_list]]
 
-    # Get predicted probabilities from each single-feature model
-    probas = []
-    for i, feature in enumerate(feature_list):
-        proba = models[feature].predict_proba([[sample_input[0][i]]])
-        probas.append(proba)
-    combined_proba = np.mean(probas, axis=0)
-    final_pred = np.argmax(combined_proba, axis=1)
-    class_names = models[feature_list[0]].classes_
-    predicted_label = class_names[final_pred[0]]
+# Prepare input for model
+sample_input = [[trait_scores[f] for f in feature_list]]
 
-    st.success(f"**Predicted Career:** {predicted_label}")
+# Get predicted probabilities from each single-feature model
+probas = []
+for i, feature in enumerate(feature_list):
+    proba = models[feature].predict_proba([[sample_input[0][i]]])
+    probas.append(proba)
+combined_proba = np.mean(probas, axis=0)
+final_pred = np.argmax(combined_proba, axis=1)
+class_names = models[feature_list[0]].classes_
+predicted_label = class_names[final_pred[0]]
+
+st.success(f"**Predicted Career:** {predicted_label}")
