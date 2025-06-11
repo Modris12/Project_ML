@@ -113,3 +113,4 @@ if st.button("Predict Career"):
     predicted_label = class_names[final_pred[0]]
 
     st.success(f"**Predicted Career:** {predicted_label}")
+    
