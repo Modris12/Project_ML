@@ -1,7 +1,3 @@
-import streamlit as st
-import numpy as np
-import joblib
-
 # Load the single-feature ensemble model
 models = joblib.load('career_single_feature_ensemble.pkl')
 feature_list = ['E_score', 'N_score', 'C_score', 'A_score', 'O_score']
@@ -74,7 +70,6 @@ reverse_scored = {
     "O2", "O4", "O6"
 }
 
-# Streamlit UI
 st.title("Career Prediction Based on Personality (Big Five)")
 
 st.write("Please answer the following 40 questions. For each, select:")
@@ -83,7 +78,6 @@ st.write("**1 = Disagree, 3 = Neutral, 5 = Agree**")
 responses = []
 for code, text in questions:
     value = st.slider(f"{code}: {text}", 1, 5, 3)
-    # Reverse score if needed
     if code in reverse_scored:
         value = 6 - value
     responses.append((code, value))
@@ -97,7 +91,17 @@ if st.button("Predict Career"):
         'A_score': np.mean([v for (c, v) in responses if c.startswith('A')]),
         'O_score': np.mean([v for (c, v) in responses if c.startswith('O')]),
     }
-    st.write("Your Big Five scores:", trait_scores)
+
+    # Calculate percentiles for each trait based on df columns
+    percentiles = {}
+    for trait in feature_list:
+        if trait in df.columns:
+            percentiles[trait] = np.round((df[trait] < trait_scores[trait]).mean() * 100, 2)
+        else:
+            percentiles[trait] = "N/A"
+    st.write("Your Big Five percentiles (relative to dataset):")
+    for trait in feature_list:
+        st.write(f"{trait}: {percentiles[trait]} percentile")
 
     # Prepare input for model
     sample_input = [[trait_scores[f] for f in feature_list]]
@@ -113,4 +117,3 @@ if st.button("Predict Career"):
     predicted_label = class_names[final_pred[0]]
 
     st.success(f"**Predicted Career:** {predicted_label}")
-    
