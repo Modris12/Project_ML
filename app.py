@@ -1,3 +1,5 @@
+import streamlit as st
+import joblib
 # Load the single-feature ensemble model
 models = joblib.load('career_single_feature_ensemble.pkl')
 feature_list = ['E_score', 'N_score', 'C_score', 'A_score', 'O_score']
