@@ -1,16 +1,12 @@
 import pandas as pd
 import numpy as np
-
 import joblib
 import streamlit as st
 
-import pandas as pd
-
-# Load the DataFrame from a file or define it
-df = pd.read_csv('data/data.csv', delimiter='\t') 
-
-# Load the single-feature ensemble model
+# Load your models and data once at the top
+df = pd.read_csv('data/data.csv', delimiter='\t')
 models = joblib.load('career_single_feature_ensemble.pkl')
+
 feature_list = ['E_score', 'N_score', 'C_score', 'A_score', 'O_score']
 
 # Define questions and their mapping to traits
@@ -72,7 +68,7 @@ questions = [
     ("O10", "I am full of ideas."),
 ]
 
-# Reverse-scored questions (where 1=Agree, 5=Disagree)
+# Reverse-scored questions (where 1 = Agree, 5 = Disagree)
 reverse_scored = {
     "E2", "E4", "E6", "E8", "E10",
     "N2", "N4",
@@ -81,42 +77,53 @@ reverse_scored = {
     "O2", "O4", "O6"
 }
 
-st.title("Career Prediction Based on Personality (Big Five)")
+reverse_scored = {
+    "E2", "E4", "E6", "E8", "E10",
+    "N2", "N4",
+    "A1", "A3", "A5", "A7",
+    "C2", "C4", "C6", "C8",
+    "O2", "O4", "O6"
+}
 
-st.write("Please answer the following 40 questions. For each, select:")
+def rescale(score, old_min=10, old_max=50, new_min=2.67, new_max=9.45):
+    return ((score - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
+
+st.title("Career Prediction Based on Personality (Big Five)")
+st.write("Please answer the following 50 questions. For each, select:")
 st.write("**1 = Disagree, 3 = Neutral, 5 = Agree**")
 
+# Collect responses with sliders, saved in session state to persist
 responses = []
 for code, text in questions:
-    value = st.slider(f"{code}: {text}", 1, 5, 3)
+    key = f"slider_{code}"
+    default_val = 3
+    if key not in st.session_state:
+        st.session_state[key] = default_val
+    value = st.slider(f"{code}: {text}", 1, 5, st.session_state[key], key=key)
     if code in reverse_scored:
         value = 6 - value
     responses.append((code, value))
 
-if st.button("Predict Career"):
-    # Calculate Big Five scores (mean of each trait)
+def predict_career(responses):
     trait_scores = {
-        'E_score': np.mean([v for (c, v) in responses if c.startswith('E')]),
-        'N_score': np.mean([v for (c, v) in responses if c.startswith('N')]),
-        'C_score': np.mean([v for (c, v) in responses if c.startswith('C')]),
-        'A_score': np.mean([v for (c, v) in responses if c.startswith('A')]),
-        'O_score': np.mean([v for (c, v) in responses if c.startswith('O')]),
+        'E_score': rescale(sum(v for (c, v) in responses if c.startswith('E'))),
+        'N_score': rescale(sum(v for (c, v) in responses if c.startswith('N'))),
+        'C_score': rescale(sum(v for (c, v) in responses if c.startswith('C'))),
+        'A_score': rescale(sum(v for (c, v) in responses if c.startswith('A'))),
+        'O_score': rescale(sum(v for (c, v) in responses if c.startswith('O'))),
     }
-
-    # Prepare input for model
     sample_input = [[trait_scores[f] for f in feature_list]]
+    probas = []
+    for i, feature in enumerate(feature_list):
+        proba = models[feature].predict_proba([[sample_input[0][i]]])
+        probas.append(proba)
+    combined_proba = np.mean(probas, axis=0)
+    final_pred = np.argmax(combined_proba, axis=1)
+    class_names = models[feature_list[0]].classes_
+    predicted_label = class_names[final_pred[0]]
+    return predicted_label, trait_scores
 
-# Prepare input for model
-sample_input = [[trait_scores[f] for f in feature_list]]
-
-# Get predicted probabilities from each single-feature model
-probas = []
-for i, feature in enumerate(feature_list):
-    proba = models[feature].predict_proba([[sample_input[0][i]]])
-    probas.append(proba)
-combined_proba = np.mean(probas, axis=0)
-final_pred = np.argmax(combined_proba, axis=1)
-class_names = models[feature_list[0]].classes_
-predicted_label = class_names[final_pred[0]]
-
-st.success(f"**Predicted Career:** {predicted_label}")
+if st.button("Predict Career"):
+    predicted_label, trait_scores = predict_career(responses)
+    st.success(f"**Predicted Career:** {predicted_label}")
+    
